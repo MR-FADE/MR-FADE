@@ -90,6 +90,7 @@
       font-family: 'Poppins', sans-serif;
       letter-spacing: 0.8px;
       box-shadow: 0 6px 20px rgba(108, 30, 30, 0.4);
+      position: relative;
     }
     button:disabled {
       background: #444;
@@ -100,6 +101,20 @@
     button:hover:not(:disabled) {
       transform: translateY(-4px);
       box-shadow: 0 10px 25px rgba(108, 30, 30, 0.6), 0 0 20px rgba(212, 175, 55, 0.2);
+    }
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
     #message {
       text-align: center;
@@ -133,6 +148,7 @@
 <body>
   <div class="container">
     <div class="back" onclick="window.history.back()">← العودة</div>
+    <!-- اللوغو كرابط خارجي (كما طلبت) -->
     <img src="https://i.ibb.co/PvMwdD3w/logo.png" alt="MR FADE Logo" class="logo">
     <div id="serviceTitle">جارٍ التحميل...</div>
     
@@ -155,6 +171,9 @@
 
     document.getElementById('serviceTitle').textContent = selectedService;
 
+    // متغير لمنع الحجز المتكرر
+    let isBooking = false;
+
     function getCurrentHour() {
       return new Date().getHours(); // 0-23
     }
@@ -164,7 +183,6 @@
       const counterEl = document.getElementById('counter');
       const bookBtn = document.getElementById('bookBtn');
 
-      // إذا كان الوقت قبل 11 صباحًا
       if (currentHour < 11) {
         counterEl.textContent = "الحجز يبدأ من الساعة 11 صباحًا";
         counterEl.style.background = 'rgba(212, 175, 55, 0.1)';
@@ -185,15 +203,17 @@
           counterEl.style.background = 'rgba(46, 125, 50, 0.15)';
           counterEl.style.color = '#c8e6c9';
           counterEl.style.border = '1px solid rgba(76, 175, 80, 0.3)';
-          bookBtn.disabled = false;
-          bookBtn.textContent = "احجز الآن";
+          if (!isBooking) {
+            bookBtn.disabled = false;
+            bookBtn.innerHTML = "احجز الآن";
+          }
         } else {
           counterEl.textContent = "تم اكتمال حجوزات اليوم. تعال بكره!";
           counterEl.style.background = 'rgba(198, 40, 40, 0.15)';
           counterEl.style.color = '#ffcdd2';
           counterEl.style.border = '1px solid rgba(244, 67, 54, 0.3)';
           bookBtn.disabled = true;
-          bookBtn.textContent = "الحجوزات مكتملة";
+          bookBtn.innerHTML = "الحجوزات مكتملة";
         }
       } catch (e) {
         counterEl.textContent = "خطأ في التحميل";
@@ -213,13 +233,21 @@
     }
 
     async function submitBooking() {
+      if (isBooking) return; // منع الحجز المتكرر
+
       const name = document.getElementById('name').value.trim();
       const phone = document.getElementById('phone').value.trim();
+      const bookBtn = document.getElementById('bookBtn');
 
       if (!name || !phone) {
         showMessage("يرجى إدخال الاسم ورقم الجوال", false);
         return;
       }
+
+      // تفعيل حالة الحجز
+      isBooking = true;
+      bookBtn.disabled = true;
+      bookBtn.innerHTML = '<span class="spinner"></span> جاري الحجز...';
 
       try {
         const url = `${WEB_APP_URL}?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&service=${encodeURIComponent(selectedService)}`;
@@ -227,9 +255,14 @@
         showMessage("تم الحجز! ستصلك رساله فموعد دورك علي الواتساب.", true);
         document.getElementById('name').value = '';
         document.getElementById('phone').value = '';
-        loadCounter();
       } catch (e) {
         showMessage("حدث خطأ، حاول لاحقًا", false);
+      } finally {
+        // بعد 2 ثانية فقط (2000 مللي ثانية)، أعد تمكين الزر
+        setTimeout(() => {
+          isBooking = false;
+          loadCounter(); // لتحديث حالة الزر والعداد
+        }, 2000);
       }
     }
 
