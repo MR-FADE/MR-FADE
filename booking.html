@@ -148,7 +148,6 @@
 <body>
   <div class="container">
     <div class="back" onclick="window.history.back()">← العودة</div>
-    <!-- اللوغو كرابط خارجي (كما طلبت) -->
     <img src="https://i.ibb.co/PvMwdD3w/logo.png" alt="MR FADE Logo" class="logo">
     <div id="serviceTitle">جارٍ التحميل...</div>
     
@@ -163,19 +162,21 @@
 
   <script>
     // ❗ غيّر هذا إلى رابط Web App الخاص بك من Google Apps Script
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyLZBQk7x1k8k8B0lb5VMA90IM7PORm45xybr2MMlICyPsXKqAMOXpxJZc_fPQ8XhQC/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwKJmgZRnc2wQncg1uKyFWkhegY2gkvmQyg7qYqEEYSv6VgFsveas7Mrp2P4xIAvFHQtQ/exec";
 
     let selectedService = localStorage.getItem('selectedService');
     let serviceLimit = parseInt(localStorage.getItem('serviceLimit')) || 15;
-    if (!selectedService) window.location.href = 'index.html';
+
+    if (!selectedService) {
+      window.location.href = 'index.html';
+    }
 
     document.getElementById('serviceTitle').textContent = selectedService;
 
-    // متغير لمنع الحجز المتكرر
     let isBooking = false;
 
     function getCurrentHour() {
-      return new Date().getHours(); // 0-23
+      return new Date().getHours(); // 0–23
     }
 
     async function loadCounter() {
@@ -183,8 +184,9 @@
       const counterEl = document.getElementById('counter');
       const bookBtn = document.getElementById('bookBtn');
 
-      if (currentHour < 11) {
-        counterEl.textContent = "الحجز يبدأ من الساعة 11 صباحًا";
+      // ✅ بدء الحجز من الساعة 1 ظهرًا (13)
+      if (currentHour < 13) {
+        counterEl.textContent = "الحجز يبدأ من الساعة 1 ظهرًا";
         counterEl.style.background = 'rgba(212, 175, 55, 0.1)';
         counterEl.style.color = '#d4af37';
         counterEl.style.border = '1px solid rgba(212, 175, 55, 0.3)';
@@ -233,7 +235,7 @@
     }
 
     async function submitBooking() {
-      if (isBooking) return; // منع الحجز المتكرر
+      if (isBooking) return;
 
       const name = document.getElementById('name').value.trim();
       const phone = document.getElementById('phone').value.trim();
@@ -244,7 +246,6 @@
         return;
       }
 
-      // تفعيل حالة الحجز
       isBooking = true;
       bookBtn.disabled = true;
       bookBtn.innerHTML = '<span class="spinner"></span> جاري الحجز...';
@@ -258,20 +259,16 @@
       } catch (e) {
         showMessage("حدث خطأ، حاول لاحقًا", false);
       } finally {
-        // بعد 2 ثانية فقط (2000 مللي ثانية)، أعد تمكين الزر
         setTimeout(() => {
           isBooking = false;
-          loadCounter(); // لتحديث حالة الزر والعداد
+          loadCounter();
         }, 2000);
       }
     }
 
-    // ربط الزر
     document.getElementById('bookBtn').onclick = submitBooking;
 
-    // تحميل أولي
     loadCounter();
-    // تحديث كل 25 ثانية
     setInterval(loadCounter, 25000);
   </script>
 </body>
