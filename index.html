@@ -16,7 +16,7 @@
     }
     .header {
       text-align: center;
-      padding: 50px 20px 30px;
+      padding: 50px 20px 40px;
       animation: fadeInDown 1s ease;
     }
     .logo-container {
@@ -37,21 +37,6 @@
       margin-top: 12px;
       text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
     }
-
-    .early-message {
-      background: rgba(212, 175, 55, 0.1);
-      border: 1px solid rgba(212, 175, 55, 0.3);
-      color: #d4af37;
-      padding: 20px;
-      border-radius: 24px;
-      text-align: center;
-      font-size: 1.3rem;
-      font-weight: 600;
-      margin: 30px auto;
-      max-width: 600px;
-      box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
-    }
-
     .services {
       display: flex;
       flex-direction: column;
@@ -71,17 +56,6 @@
       border: 1px solid #2a2a2a;
       box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
-    .service-card.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    .service-card::before,
-    .service-card.disabled::before,
-    .service-card.disabled:hover::before {
-      opacity: 0 !important;
-    }
     .service-card::before {
       content: '';
       position: absolute;
@@ -98,7 +72,7 @@
     .service-card:hover::before {
       opacity: 1;
     }
-    .service-card:hover:not(.disabled) {
+    .service-card:hover {
       transform: translateY(-12px);
       box-shadow: 0 15px 40px rgba(108, 30, 30, 0.4), 0 0 25px rgba(212, 175, 55, 0.2);
     }
@@ -114,22 +88,22 @@
       color: #bbb;
       font-size: 1.2rem;
       line-height: 1.6;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
     .service-card .limit {
       display: inline-block;
       background: rgba(108, 30, 30, 0.3);
       color: #d4af37;
-      padding: 10px 24px;
+      padding: 8px 22px;
       border-radius: 30px;
       font-weight: 600;
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       letter-spacing: 0.8px;
       backdrop-filter: blur(4px);
       border: 1px solid rgba(212, 175, 55, 0.2);
-      margin-top: 8px;
     }
 
+    /* Animations */
     @keyframes fadeInDown {
       from { opacity: 0; transform: translateY(-30px); }
       to { opacity: 1; transform: translateY(0); }
@@ -144,7 +118,6 @@
       .header { padding: 40px 15px; }
       .service-card h2 { font-size: 1.8rem; }
       .service-card { padding: 28px; }
-      .service-card .limit { font-size: 1.1rem; padding: 8px 20px; }
     }
   </style>
 </head>
@@ -156,54 +129,25 @@
     <div class="tagline">✂️ احتراف • أناقة • تميز</div>
   </div>
 
-  <div id="earlyMessage" class="early-message" style="display:none;">
-    ⏰ الحجز متاح بدءًا من الساعة <strong>1:00 ظهرًا</strong>  
-    <br> 👌
-  </div>
-
-  <div class="services" id="servicesContainer">
-    <div class="service-card" onclick="goToBooking('الحلاقة الكاملة', 30)">
-      <h2>الحلاقة الكاملة</h2>
-      <p>حلاقة كاملة بإتقان واحتراف مع اختيار الحلاق</p>
-      <div class="limit">20 مع السعيد • 10 مع أحمد</div>
+  <div class="services">
+    <div class="service-card" onclick="goToBooking('الحلاقة الكاملة', 20)">
+      <h2>الحلاقة الكاملة مع السعيد 1</h2>
+      <p>حلاقة كامله بإتقان واحتراف</p>
+      <div class="limit">20 موعد يوميًا</div>
     </div>
-    <div class="service-card" onclick="goToBooking('الاستشوار / الكيرلي', 10)">
-      <h2>الاستشوار / الكيرلي</h2>
-      <p>تصفيف، كيرلي، عناية بالشعر — بإطلالة مثالية</p>
+    <div class="service-card" onclick="goToBooking('الحلاقة الكاملة مع احمد', 10)">
+      <h2>الحلاقة الكاملة مع احمد 2</h2>
+      <p>حلاقة كامله بإتقان واحتراف</p>
       <div class="limit">10 مواعيد يوميًا</div>
     </div>
   </div>
 
   <script>
-    function getCurrentHour() {
-      return new Date().getHours();
-    }
-
-    function updateAvailability() {
-      const hour = getCurrentHour();
-      const earlyMsg = document.getElementById('earlyMessage');
-      const services = document.getElementById('servicesContainer');
-
-      if (hour < 13) {
-        earlyMsg.style.display = 'block';
-        services.style.display = 'none';
-      } else {
-        earlyMsg.style.display = 'none';
-        services.style.display = 'flex';
-      }
-    }
-
     function goToBooking(service, limit) {
-      if (getCurrentHour() < 13) {
-        alert("⏰ الحجز متاح من الساعة 1 ظهرًا فقط.");
-        return;
-      }
       localStorage.setItem('selectedService', service);
+      localStorage.setItem('serviceLimit', limit);
       window.location.href = 'booking.html';
     }
-
-    updateAvailability();
-    setInterval(updateAvailability, 10000);
   </script>
 </body>
 </html>
