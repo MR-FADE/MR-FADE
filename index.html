@@ -16,7 +16,7 @@
     }
     .header {
       text-align: center;
-      padding: 50px 20px 40px;
+      padding: 50px 20px 30px;
       animation: fadeInDown 1s ease;
     }
     .logo-container {
@@ -37,6 +37,22 @@
       margin-top: 12px;
       text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
     }
+
+    /* ✅ رسالة الحجز المبكر */
+    .early-message {
+      background: rgba(212, 175, 55, 0.1);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      color: #d4af37;
+      padding: 20px;
+      border-radius: 24px;
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin: 30px auto;
+      max-width: 600px;
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.3);
+    }
+
     .services {
       display: flex;
       flex-direction: column;
@@ -56,6 +72,16 @@
       border: 1px solid #2a2a2a;
       box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
+    .service-card.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .service-card.disabled::before,
+    .service-card.disabled:hover::before {
+      opacity: 0 !important;
+    }
     .service-card::before {
       content: '';
       position: absolute;
@@ -72,7 +98,7 @@
     .service-card:hover::before {
       opacity: 1;
     }
-    .service-card:hover {
+    .service-card:hover:not(.disabled) {
       transform: translateY(-12px);
       box-shadow: 0 15px 40px rgba(108, 30, 30, 0.4), 0 0 25px rgba(212, 175, 55, 0.2);
     }
@@ -131,7 +157,13 @@
     <div class="tagline">✂️ احتراف • أناقة • تميز</div>
   </div>
 
-  <div class="services">
+  <!-- ✅ رسالة تُظهر قبل الساعة 1 ظهرًا -->
+  <div id="earlyMessage" class="early-message" style="display:none;">
+    ⏰ الحجز متاح بدءًا من الساعة <strong>1:00 ظهرًا</strong>  
+    <br> 👌
+  </div>
+
+  <div class="services" id="servicesContainer">
     <div class="service-card" onclick="goToBooking('الحلاقة الكاملة', 30)">
       <h2>الحلاقة الكاملة</h2>
       <p>حلاقة كاملة بإتقان واحتراف مع اختيار الحلاق</p>
@@ -145,11 +177,44 @@
   </div>
 
   <script>
+    function getCurrentHour() {
+      return new Date().getHours(); // 0–23
+    }
+
+    function updateAvailability() {
+      const hour = getCurrentHour();
+      const earlyMsg = document.getElementById('earlyMessage');
+      const services = document.getElementById('servicesContainer');
+      const cards = document.querySelectorAll('.service-card');
+
+      if (hour < 13) {
+        // قبل 1 ظهرًا
+        earlyMsg.style.display = 'block';
+        services.style.display = 'none';
+      } else {
+        // من 1 ظهرًا فصاعدًا
+        earlyMsg.style.display = 'none';
+        services.style.display = 'flex';
+        cards.forEach(card => card.classList.remove('disabled'));
+      }
+    }
+
     function goToBooking(service, limit) {
+      const hour = getCurrentHour();
+      if (hour < 13) {
+        alert("⏰ الحجز متاح من الساعة 1 ظهرًا فقط.");
+        return;
+      }
       localStorage.setItem('selectedService', service);
-      localStorage.setItem('serviceLimit', limit); // ⚠️ ملاحظة: في booking.html لن نستخدم هذا الحد مباشرة — سنتعامل مع الحلاقين
+      localStorage.setItem('serviceLimit', limit);
       window.location.href = 'booking.html';
     }
+
+    // تحقق فوري عند تحميل الصفحة
+    updateAvailability();
+
+    // تحقق كل 30 ثانية (لمن فتح الصفحة مبكرًا وانتظر)
+    setInterval(updateAvailability, 30000);
   </script>
 </body>
 </html>
