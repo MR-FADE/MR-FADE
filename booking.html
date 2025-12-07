@@ -23,6 +23,21 @@
       box-shadow: 0 15px 50px rgba(0,0,0,0.4);
       border: 1px solid #2a2a2a;
     }
+    .back {
+      display: inline-block;
+      margin-bottom: 26px;
+      color: #d4af37;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: all 0.3s;
+      text-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+    }
+    .back:hover {
+      color: #fff;
+      transform: translateX(-6px);
+      text-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
+    }
     .logo {
       width: 220px;
       max-width: 75%;
@@ -34,31 +49,16 @@
       text-align: center;
       padding: 20px;
       border-radius: 22px;
-      margin: 20px 0;
-      font-weight: 600;
-      font-size: 1.2rem;
+      margin: 26px 0;
+      font-weight: 700;
+      font-size: 1.4rem;
       background: rgba(30, 30, 30, 0.7);
       color: #f5f5f5;
       border: 1px solid #2a2a2a;
       box-shadow: inset 0 0 15px rgba(0,0,0,0.5), 0 4px 15px rgba(0,0,0,0.2);
       backdrop-filter: blur(6px);
-      line-height: 1.6;
     }
-    .barber-status {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 8px;
-      font-size: 1.1rem;
-    }
-    .barber-status span {
-      background: rgba(46, 125, 50, 0.2);
-      padding: 6px 12px;
-      border-radius: 12px;
-      font-weight: 600;
-    }
-    .full { background: rgba(198, 40, 40, 0.2) !important; color: #ffcdd2; }
-
-    input, select {
+    input {
       width: 100%;
       padding: 18px;
       margin: 13px 0;
@@ -71,7 +71,7 @@
       transition: all 0.35s;
       font-family: 'Poppins', sans-serif;
     }
-    input:focus, select:focus {
+    input:focus {
       border-color: #d4af37;
       box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.3);
       background: #2a2a2a;
@@ -137,142 +137,92 @@
       color: #c8e6c9;
       border-color: #2e7d32;
     }
+
+    @media (max-width: 500px) {
+      .container { padding: 26px; margin: 20px; }
+      .logo { width: 200px; }
+      input, button { padding: 17px; font-size: 1.15rem; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="back" onclick="window.history.back()">← العودة</div>
     <img src="https://i.ibb.co/NgpMdYNB/logo-1.png" alt="MR FADE Logo" class="logo">
     <div id="serviceTitle">جارٍ التحميل...</div>
     
-    <div class="counter" id="counter">جارٍ التحميل...</div>
+    <div class="counter" id="counter">جارٍ التحقق من الوقت...</div>
 
     <input type="text" id="name" placeholder="اسمك الكامل" autocomplete="name" />
     <input type="tel" id="phone" placeholder="رقم الجوال" autocomplete="tel" />
-    
-    <select id="barber">
-      <option value="" disabled selected>اختر الحلاق</option>
-      <option value="السعيد">كرسي 1 — السعيد</option>
-      <option value="أحمد">كرسي 2 — أحمد</option>
-    </select>
-
     <button id="bookBtn" disabled>جارٍ التحميل...</button>
+
     <div id="message"></div>
   </div>
 
   <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxNGrrtCj2Ayx2q8HYL_QpYpAUUdbWlwcHA1G3Pf6-3gVJaKiWu0MGA5ysyoRYHtIagHw/exec";
-    const selectedService = localStorage.getItem('selectedService') || "";
-    if (!selectedService) window.location.href = 'index.html';
+    // ❗ غيّر هذا إلى رابط Web App الخاص بك من Google Apps Script
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzuLv5y_dw1Jh-7OJT4EuMk5mPXJcSlziKetl3B4M7T5tIWbQy--8xHv_oxwmEyEpc/exec";
+
+    let selectedService = localStorage.getItem('selectedService');
+    let serviceLimit = parseInt(localStorage.getItem('serviceLimit')) || 15;
+
+    if (!selectedService) {
+      window.location.href = 'index.html';
+    }
+
     document.getElementById('serviceTitle').textContent = selectedService;
 
-    const limits = { السعيد: 20, أحمد: 10 };
-    let counts = { السعيد: 0, أحمد: 0 };
     let isBooking = false;
 
-    // --- التحديث الآمن للواجهة (مع التحقق من الوقت) ---
-    function updateCounterUI() {
+    function getCurrentHour() {
+      return new Date().getHours(); // 0–23
+    }
+
+    async function loadCounter() {
+      const currentHour = getCurrentHour();
       const counterEl = document.getElementById('counter');
       const bookBtn = document.getElementById('bookBtn');
-      const barber = document.getElementById('barber').value;
 
-      if (new Date().getHours() < 13) {
-        counterEl.innerHTML = "الحجز يبدأ من الساعة <strong>1:00 ظهرًا</strong>";
-        counterEl.style.background = 'rgba(212,175,55,0.1)';
+      // ✅ بدء الحجز من الساعة 1 ظهرًا (13)
+      if (currentHour < 13) {
+        counterEl.textContent = "الحجز يبدأ من الساعة 1 ظهرًا";
+        counterEl.style.background = 'rgba(212, 175, 55, 0.1)';
         counterEl.style.color = '#d4af37';
+        counterEl.style.border = '1px solid rgba(212, 175, 55, 0.3)';
         bookBtn.disabled = true;
         bookBtn.textContent = "غير متاح الآن";
         return;
       }
 
-      const remainingSa3id = limits.السعيد - counts.السعيد;
-      const remainingAhmed = limits.أحمد - counts.أحمد;
-
-      counterEl.innerHTML = `
-        <div>الأماكن المتبقية:</div>
-        <div class="barber-status">
-          <span ${remainingSa3id <= 0 ? 'class="full"' : ''}>السعيد: ${Math.max(0, remainingSa3id)}</span>
-          <span ${remainingAhmed <= 0 ? 'class="full"' : ''}>أحمد: ${Math.max(0, remainingAhmed)}</span>
-        </div>
-      `;
-
-      if (!isBooking && barber === "السعيد" && remainingSa3id > 0) {
-        bookBtn.disabled = false;
-        bookBtn.textContent = "احجز مع السعيد";
-      } else if (!isBooking && barber === "أحمد" && remainingAhmed > 0) {
-        bookBtn.disabled = false;
-        bookBtn.textContent = "احجز مع أحمد";
-      } else {
-        bookBtn.disabled = true;
-        bookBtn.textContent = "غير متاح";
-      }
-    }
-
-    // --- جلب العدادات من السيرفر (الوحيد الموثوق) ---
-    async function loadCounts() {
       try {
-        const res = await fetch(`${WEB_APP_URL}?action=getBarberCounts`);
-        const data = await res.json();
-        counts.السعيد = data.sa3id || 0;
-        counts.أحمد = data.ahmed || 0;
-        updateCounterUI();
-      } catch (e) {
-        const el = document.getElementById('counter');
-        el.textContent = "فشل في تحميل العداد";
-        el.style.background = 'rgba(198,40,40,0.15)';
-        el.style.color = '#ffcdd2';
-      }
-    }
-
-    // --- إرسال الحجز (مع تأخير 3 ثوانٍ وحماية ضد التزامن) ---
-    async function submitBooking() {
-      if (new Date().getHours() < 13) {
-        showMessage("الحجز غير متاح حتى الساعة 1 ظهرًا ⏰", false);
-        return;
-      }
-
-      const bookBtn = document.getElementById('bookBtn');
-      if (bookBtn.disabled) return; // منع الضغط المتكرر
-
-      const name = document.getElementById('name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const barber = document.getElementById('barber').value;
-
-      if (!name || !phone || !barber) {
-        showMessage("يرجى تعبئة جميع الحقول", false);
-        return;
-      }
-
-      // ✅ تعطيل فوري لمدة 3 ثوانٍ
-      isBooking = true;
-      bookBtn.disabled = true;
-      bookBtn.innerHTML = '<span class="spinner"></span> جاري الحجز...';
-
-      try {
-        const params = new URLSearchParams({ action: "book", name, phone, service: selectedService, barber });
-        const res = await fetch(`${WEB_APP_URL}?${params.toString()}`);
-        const result = await res.text();
-
-        if (result === "OK") {
-          showMessage(`تم الحجز مع ${barber} بنجاح 🎉`, true);
-          document.getElementById('name').value = '';
-          document.getElementById('phone').value = '';
-          document.getElementById('barber').selectedIndex = 0;
-          loadCounts(); // تحديث العداد من المصدر
-        } else if (result === "full") {
-          showMessage(`لا توجد أماكن متبقية مع ${barber}`, false);
-          loadCounts();
-        } else if (result === "early") {
-          showMessage("الحجز متاح من الساعة 1 ظهرًا فقط", false);
+        const response = await fetch(`${WEB_APP_URL}?service=${encodeURIComponent(selectedService)}`);
+        const count = parseInt(await response.text()) || 0;
+        const remaining = serviceLimit - count;
+        
+        if (remaining > 0) {
+          counterEl.textContent = `الأماكن المتبقية: ${remaining} من ${serviceLimit}`;
+          counterEl.style.background = 'rgba(46, 125, 50, 0.15)';
+          counterEl.style.color = '#c8e6c9';
+          counterEl.style.border = '1px solid rgba(76, 175, 80, 0.3)';
+          if (!isBooking) {
+            bookBtn.disabled = false;
+            bookBtn.innerHTML = "احجز الآن";
+          }
         } else {
-          showMessage("حدث خطأ، حاول لاحقًا", false);
+          counterEl.textContent = "تم اكتمال حجوزات اليوم. تعال بكره!";
+          counterEl.style.background = 'rgba(198, 40, 40, 0.15)';
+          counterEl.style.color = '#ffcdd2';
+          counterEl.style.border = '1px solid rgba(244, 67, 54, 0.3)';
+          bookBtn.disabled = true;
+          bookBtn.innerHTML = "الحجوزات مكتملة";
         }
       } catch (e) {
-        showMessage("فشل الاتصال", false);
-      } finally {
-        setTimeout(() => {
-          isBooking = false;
-          updateCounterUI();
-        }, 3000); // ⏱️ 3 ثوانٍ بالضبط
+        counterEl.textContent = "خطأ في التحميل";
+        counterEl.style.background = 'rgba(198, 40, 40, 0.15)';
+        counterEl.style.color = '#ffcdd2';
+        counterEl.style.border = '1px solid rgba(244, 67, 54, 0.3)';
+        bookBtn.disabled = true;
       }
     }
 
@@ -281,17 +231,45 @@
       el.textContent = msg;
       el.className = isSuccess ? 'success' : 'error';
       el.style.display = 'block';
-      setTimeout(() => el.style.display = 'none', 4000);
+      setTimeout(() => el.style.display = 'none', 4500);
     }
 
-    // --- ربط الأحداث ---
-    document.getElementById('barber').onchange = updateCounterUI;
+    async function submitBooking() {
+      if (isBooking) return;
+
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const bookBtn = document.getElementById('bookBtn');
+
+      if (!name || !phone) {
+        showMessage("يرجى إدخال الاسم ورقم الجوال", false);
+        return;
+      }
+
+      isBooking = true;
+      bookBtn.disabled = true;
+      bookBtn.innerHTML = '<span class="spinner"></span> جاري الحجز...';
+
+      try {
+        const url = `${WEB_APP_URL}?name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&service=${encodeURIComponent(selectedService)}`;
+        await fetch(url);
+        showMessage("تم الحجز! ستصلك رساله فموعد دورك علي الواتساب.", true);
+        document.getElementById('name').value = '';
+        document.getElementById('phone').value = '';
+      } catch (e) {
+        showMessage("حدث خطأ، حاول لاحقًا", false);
+      } finally {
+        setTimeout(() => {
+          isBooking = false;
+          loadCounter();
+        }, 2000);
+      }
+    }
+
     document.getElementById('bookBtn').onclick = submitBooking;
 
-    // --- تشغيل أولي ---
-    loadCounts();
-    updateCounterUI();
-    setInterval(() => updateCounterUI(), 2000);
+    loadCounter();
+    setInterval(loadCounter, 25000);
   </script>
 </body>
 </html>
