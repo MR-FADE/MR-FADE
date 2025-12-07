@@ -56,10 +56,7 @@
       border-radius: 12px;
       font-weight: 600;
     }
-    .full { 
-      background: rgba(198, 40, 40, 0.2) !important; 
-      color: #ffcdd2; 
-    }
+    .full { background: rgba(198, 40, 40, 0.2) !important; color: #ffcdd2; }
 
     input, select {
       width: 100%;
@@ -163,44 +160,30 @@
   </div>
 
   <script>
-    // 🔗 رابط Web App من Google Apps Script (عدّله لو تغيّر)
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw0coRWKontfd2HamkVrMjh3aylw3ByuKu3TgVZnD8RE--u6gzmU8_Y_oabeNrJElrsbA/exec";
-
-    // 🔍 تحقق من الخدمة المختارة
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxNGrrtCj2Ayx2q8HYL_QpYpAUUdbWlwcHA1G3Pf6-3gVJaKiWu0MGA5ysyoRYHtIagHw/exec";
     const selectedService = localStorage.getItem('selectedService') || "";
-    if (!selectedService) {
-      window.location.href = 'index.html';
-    }
+    if (!selectedService) window.location.href = 'index.html';
     document.getElementById('serviceTitle').textContent = selectedService;
 
-    // ✅ الحدود المطلوبة: السعيد (20)، أحمد (10)
     const limits = { السعيد: 20, أحمد: 10 };
     let counts = { السعيد: 0, أحمد: 0 };
     let isBooking = false;
 
-    // 🕒 دالة: هل الوقت ≥ 1 ظهرًا؟
-    function isBookingTime() {
-      return new Date().getHours() >= 13;
-    }
-
-    // 🔁 دالة: تحديث واجهة العداد + حالة الزر (مع التحقق من الوقت!)
+    // --- التحديث الآمن للواجهة (مع التحقق من الوقت) ---
     function updateCounterUI() {
       const counterEl = document.getElementById('counter');
       const bookBtn = document.getElementById('bookBtn');
       const barber = document.getElementById('barber').value;
 
-      // ✅ أولًا وأخيرًا: قبل 1 ظهرًا → كل شيء معطّل
-      if (!isBookingTime()) {
+      if (new Date().getHours() < 13) {
         counterEl.innerHTML = "الحجز يبدأ من الساعة <strong>1:00 ظهرًا</strong>";
         counterEl.style.background = 'rgba(212,175,55,0.1)';
         counterEl.style.color = '#d4af37';
-        counterEl.style.border = '1px solid rgba(212,175,55,0.3)';
         bookBtn.disabled = true;
         bookBtn.textContent = "غير متاح الآن";
         return;
       }
 
-      // ✅ من 1 ظهرًا فصاعدًا: نعرض العدادات
       const remainingSa3id = limits.السعيد - counts.السعيد;
       const remainingAhmed = limits.أحمد - counts.أحمد;
 
@@ -212,11 +195,10 @@
         </div>
       `;
 
-      // ✅ تفعيل الزر فقط إذا: حلاق مختار + أماكن متبقية
-      if (barber === "السعيد" && remainingSa3id > 0) {
+      if (!isBooking && barber === "السعيد" && remainingSa3id > 0) {
         bookBtn.disabled = false;
         bookBtn.textContent = "احجز مع السعيد";
-      } else if (barber === "أحمد" && remainingAhmed > 0) {
+      } else if (!isBooking && barber === "أحمد" && remainingAhmed > 0) {
         bookBtn.disabled = false;
         bookBtn.textContent = "احجز مع أحمد";
       } else {
@@ -225,65 +207,48 @@
       }
     }
 
-    // 🌐 جلب العدادات من Google Sheets
+    // --- جلب العدادات من السيرفر (الوحيد الموثوق) ---
     async function loadCounts() {
-      const counterEl = document.getElementById('counter');
-      const bookBtn = document.getElementById('bookBtn');
-
-      // ✅ حتى لو فشل التحميل، التحقق من الوقت مطبق أولًا في updateCounterUI
       try {
         const res = await fetch(`${WEB_APP_URL}?action=getBarberCounts`);
         const data = await res.json();
         counts.السعيد = data.sa3id || 0;
         counts.أحمد = data.ahmed || 0;
-        updateCounterUI(); // مهم: بعد التحديث، نُعيد رسم الواجهة (مع التحقق من الوقت)
+        updateCounterUI();
       } catch (e) {
-        counterEl.textContent = "خطأ في التحميل";
-        counterEl.style.background = 'rgba(198,40,40,0.15)';
-        counterEl.style.color = '#ffcdd2';
-        bookBtn.disabled = true;
+        const el = document.getElementById('counter');
+        el.textContent = "فشل في تحميل العداد";
+        el.style.background = 'rgba(198,40,40,0.15)';
+        el.style.color = '#ffcdd2';
       }
     }
 
-    // 📥 إرسال الحجز
+    // --- إرسال الحجز (مع تأخير 3 ثوانٍ وحماية ضد التزامن) ---
     async function submitBooking() {
-      // ✅ الحماية النهائية: حتى لو عطّل الجافاسكربت في الواجهة
-      if (!isBookingTime()) {
+      if (new Date().getHours() < 13) {
         showMessage("الحجز غير متاح حتى الساعة 1 ظهرًا ⏰", false);
         return;
       }
 
-      if (isBooking) return;
+      const bookBtn = document.getElementById('bookBtn');
+      if (bookBtn.disabled) return; // منع الضغط المتكرر
 
       const name = document.getElementById('name').value.trim();
       const phone = document.getElementById('phone').value.trim();
       const barber = document.getElementById('barber').value;
-      const bookBtn = document.getElementById('bookBtn');
 
       if (!name || !phone || !barber) {
         showMessage("يرجى تعبئة جميع الحقول", false);
         return;
       }
 
-      const remaining = limits[barber] - counts[barber];
-      if (remaining <= 0) {
-        showMessage(`لا توجد أماكن متبقية مع ${barber}`, false);
-        return;
-      }
-
+      // ✅ تعطيل فوري لمدة 3 ثوانٍ
       isBooking = true;
       bookBtn.disabled = true;
       bookBtn.innerHTML = '<span class="spinner"></span> جاري الحجز...';
 
       try {
-        const params = new URLSearchParams({
-          action: "book",
-          name,
-          phone,
-          service: selectedService,
-          barber
-        });
-
+        const params = new URLSearchParams({ action: "book", name, phone, service: selectedService, barber });
         const res = await fetch(`${WEB_APP_URL}?${params.toString()}`);
         const result = await res.text();
 
@@ -292,27 +257,25 @@
           document.getElementById('name').value = '';
           document.getElementById('phone').value = '';
           document.getElementById('barber').selectedIndex = 0;
-
-          // تحديث العداد محليًا فور النجاح (UX أسرع)
-          counts[barber] += 1;
-          updateCounterUI();
+          loadCounts(); // تحديث العداد من المصدر
+        } else if (result === "full") {
+          showMessage(`لا توجد أماكن متبقية مع ${barber}`, false);
+          loadCounts();
         } else if (result === "early") {
           showMessage("الحجز متاح من الساعة 1 ظهرًا فقط", false);
         } else {
-          showMessage("فشل الحجز. حاول مجددًا", false);
-          loadCounts(); // إعادة التحميل لضمان الدقة
+          showMessage("حدث خطأ، حاول لاحقًا", false);
         }
       } catch (e) {
-        showMessage("حدث خطأ في الشبكة", false);
-        loadCounts();
+        showMessage("فشل الاتصال", false);
       } finally {
         setTimeout(() => {
           isBooking = false;
-        }, 3000);
+          updateCounterUI();
+        }, 3000); // ⏱️ 3 ثوانٍ بالضبط
       }
     }
 
-    // 💬 عرض رسالة مؤقتة
     function showMessage(msg, isSuccess) {
       const el = document.getElementById('message');
       el.textContent = msg;
@@ -321,20 +284,14 @@
       setTimeout(() => el.style.display = 'none', 4000);
     }
 
-    // 🎯 ربط الأحداث
+    // --- ربط الأحداث ---
     document.getElementById('barber').onchange = updateCounterUI;
     document.getElementById('bookBtn').onclick = submitBooking;
 
-    // 🚀 تشغيل أولي
+    // --- تشغيل أولي ---
     loadCounts();
-    updateCounterUI(); // تأكد من تطبيق حالة الوقت فور التحميل
-
-    // 🔄 تحديث دوري (لمن فتح الصفحة قبل 1 ظهرًا وانتظر)
-    setInterval(() => {
-      updateCounterUI();
-      // نُعيد تحميل العدادات كل 30 ثانية فقط إذا كان الوقت مناسبًا
-      if (isBookingTime()) loadCounts();
-    }, 10000); // تحديث كل 10 ثوانٍ لضمان دقة الوقت
+    updateCounterUI();
+    setInterval(() => updateCounterUI(), 10000);
   </script>
 </body>
 </html>
