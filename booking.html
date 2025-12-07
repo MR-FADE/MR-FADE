@@ -56,7 +56,10 @@
       border-radius: 12px;
       font-weight: 600;
     }
-    .full { background: rgba(198, 40, 40, 0.2) !important; color: #ffcdd2; }
+    .full { 
+      background: rgba(198, 40, 40, 0.2) !important; 
+      color: #ffcdd2; 
+    }
 
     input, select {
       width: 100%;
@@ -160,25 +163,44 @@
   </div>
 
   <script>
+    // 🔗 رابط Web App من Google Apps Script (عدّله لو تغيّر)
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw0coRWKontfd2HamkVrMjh3aylw3ByuKu3TgVZnD8RE--u6gzmU8_Y_oabeNrJElrsbA/exec";
+
+    // 🔍 تحقق من الخدمة المختارة
     const selectedService = localStorage.getItem('selectedService') || "";
-    const isFullService = selectedService === "الحلاقة الكاملة";
-
-    if (!selectedService) window.location.href = 'index.html';
-
+    if (!selectedService) {
+      window.location.href = 'index.html';
+    }
     document.getElementById('serviceTitle').textContent = selectedService;
 
-    // ✅ التخصيص: سعة كل حلاق
+    // ✅ الحدود المطلوبة: السعيد (20)، أحمد (10)
     const limits = { السعيد: 20, أحمد: 10 };
     let counts = { السعيد: 0, أحمد: 0 };
     let isBooking = false;
 
-    // --- دالة تحديث العرض حسب العدادات ---
+    // 🕒 دالة: هل الوقت ≥ 1 ظهرًا؟
+    function isBookingTime() {
+      return new Date().getHours() >= 13;
+    }
+
+    // 🔁 دالة: تحديث واجهة العداد + حالة الزر (مع التحقق من الوقت!)
     function updateCounterUI() {
       const counterEl = document.getElementById('counter');
       const bookBtn = document.getElementById('bookBtn');
       const barber = document.getElementById('barber').value;
 
+      // ✅ أولًا وأخيرًا: قبل 1 ظهرًا → كل شيء معطّل
+      if (!isBookingTime()) {
+        counterEl.innerHTML = "الحجز يبدأ من الساعة <strong>1:00 ظهرًا</strong>";
+        counterEl.style.background = 'rgba(212,175,55,0.1)';
+        counterEl.style.color = '#d4af37';
+        counterEl.style.border = '1px solid rgba(212,175,55,0.3)';
+        bookBtn.disabled = true;
+        bookBtn.textContent = "غير متاح الآن";
+        return;
+      }
+
+      // ✅ من 1 ظهرًا فصاعدًا: نعرض العدادات
       const remainingSa3id = limits.السعيد - counts.السعيد;
       const remainingAhmed = limits.أحمد - counts.أحمد;
 
@@ -190,11 +212,11 @@
         </div>
       `;
 
-      // تفعيل/تعطيل الزر حسب الحلاق المختار
-      if (barber && remainingSa3id > 0 && barber === "السعيد") {
+      // ✅ تفعيل الزر فقط إذا: حلاق مختار + أماكن متبقية
+      if (barber === "السعيد" && remainingSa3id > 0) {
         bookBtn.disabled = false;
         bookBtn.textContent = "احجز مع السعيد";
-      } else if (barber && remainingAhmed > 0 && barber === "أحمد") {
+      } else if (barber === "أحمد" && remainingAhmed > 0) {
         bookBtn.disabled = false;
         bookBtn.textContent = "احجز مع أحمد";
       } else {
@@ -203,27 +225,18 @@
       }
     }
 
-    // --- جلب العدادات من السيرفر ---
+    // 🌐 جلب العدادات من Google Sheets
     async function loadCounts() {
       const counterEl = document.getElementById('counter');
       const bookBtn = document.getElementById('bookBtn');
-      const currentHour = new Date().getHours();
 
-      if (currentHour < 13) { // ✅ 1 ظهرًا
-        counterEl.innerHTML = "الحجز يبدأ من الساعة 1 ظهرًا";
-        counterEl.style.background = 'rgba(212,175,55,0.1)';
-        counterEl.style.color = '#d4af37';
-        bookBtn.disabled = true;
-        bookBtn.textContent = "غير متاح الآن";
-        return;
-      }
-
+      // ✅ حتى لو فشل التحميل، التحقق من الوقت مطبق أولًا في updateCounterUI
       try {
         const res = await fetch(`${WEB_APP_URL}?action=getBarberCounts`);
         const data = await res.json();
         counts.السعيد = data.sa3id || 0;
         counts.أحمد = data.ahmed || 0;
-        updateCounterUI();
+        updateCounterUI(); // مهم: بعد التحديث، نُعيد رسم الواجهة (مع التحقق من الوقت)
       } catch (e) {
         counterEl.textContent = "خطأ في التحميل";
         counterEl.style.background = 'rgba(198,40,40,0.15)';
@@ -232,11 +245,14 @@
       }
     }
 
-    // --- عند تغيير اختيار الحلاق ---
-    document.getElementById('barber').onchange = updateCounterUI;
-
-    // --- إرسال الحجز ---
+    // 📥 إرسال الحجز
     async function submitBooking() {
+      // ✅ الحماية النهائية: حتى لو عطّل الجافاسكربت في الواجهة
+      if (!isBookingTime()) {
+        showMessage("الحجز غير متاح حتى الساعة 1 ظهرًا ⏰", false);
+        return;
+      }
+
       if (isBooking) return;
 
       const name = document.getElementById('name').value.trim();
@@ -277,12 +293,14 @@
           document.getElementById('phone').value = '';
           document.getElementById('barber').selectedIndex = 0;
 
-          // تحديث العداد محليًا دون انتظار (UX أسرع)
+          // تحديث العداد محليًا فور النجاح (UX أسرع)
           counts[barber] += 1;
           updateCounterUI();
+        } else if (result === "early") {
+          showMessage("الحجز متاح من الساعة 1 ظهرًا فقط", false);
         } else {
           showMessage("فشل الحجز. حاول مجددًا", false);
-          loadCounts(); // إعادة تحميل للتأكد
+          loadCounts(); // إعادة التحميل لضمان الدقة
         }
       } catch (e) {
         showMessage("حدث خطأ في الشبكة", false);
@@ -294,6 +312,7 @@
       }
     }
 
+    // 💬 عرض رسالة مؤقتة
     function showMessage(msg, isSuccess) {
       const el = document.getElementById('message');
       el.textContent = msg;
@@ -302,10 +321,20 @@
       setTimeout(() => el.style.display = 'none', 4000);
     }
 
-    // --- ربط الزر والتحميل ---
+    // 🎯 ربط الأحداث
+    document.getElementById('barber').onchange = updateCounterUI;
     document.getElementById('bookBtn').onclick = submitBooking;
+
+    // 🚀 تشغيل أولي
     loadCounts();
-    setInterval(loadCounts, 30000); // تحديث كل 30 ثانية
+    updateCounterUI(); // تأكد من تطبيق حالة الوقت فور التحميل
+
+    // 🔄 تحديث دوري (لمن فتح الصفحة قبل 1 ظهرًا وانتظر)
+    setInterval(() => {
+      updateCounterUI();
+      // نُعيد تحميل العدادات كل 30 ثانية فقط إذا كان الوقت مناسبًا
+      if (isBookingTime()) loadCounts();
+    }, 10000); // تحديث كل 10 ثوانٍ لضمان دقة الوقت
   </script>
 </body>
 </html>
