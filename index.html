@@ -38,7 +38,6 @@
       text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
     }
 
-    /* ✅ رسالة الحجز المبكر */
     .early-message {
       background: rgba(212, 175, 55, 0.1);
       border: 1px solid rgba(212, 175, 55, 0.3);
@@ -78,6 +77,7 @@
       transform: none !important;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
+    .service-card::before,
     .service-card.disabled::before,
     .service-card.disabled:hover::before {
       opacity: 0 !important;
@@ -130,7 +130,6 @@
       margin-top: 8px;
     }
 
-    /* Animations */
     @keyframes fadeInDown {
       from { opacity: 0; transform: translateY(-30px); }
       to { opacity: 1; transform: translateY(0); }
@@ -157,7 +156,6 @@
     <div class="tagline">✂️ احتراف • أناقة • تميز</div>
   </div>
 
-  <!-- ✅ رسالة تُظهر قبل الساعة 1 ظهرًا -->
   <div id="earlyMessage" class="early-message" style="display:none;">
     ⏰ الحجز متاح بدءًا من الساعة <strong>1:00 ظهرًا</strong>  
     <br> 👌
@@ -178,43 +176,34 @@
 
   <script>
     function getCurrentHour() {
-      return new Date().getHours(); // 0–23
+      return new Date().getHours();
     }
 
     function updateAvailability() {
       const hour = getCurrentHour();
       const earlyMsg = document.getElementById('earlyMessage');
       const services = document.getElementById('servicesContainer');
-      const cards = document.querySelectorAll('.service-card');
 
       if (hour < 13) {
-        // قبل 1 ظهرًا
         earlyMsg.style.display = 'block';
         services.style.display = 'none';
       } else {
-        // من 1 ظهرًا فصاعدًا
         earlyMsg.style.display = 'none';
         services.style.display = 'flex';
-        cards.forEach(card => card.classList.remove('disabled'));
       }
     }
 
     function goToBooking(service, limit) {
-      const hour = getCurrentHour();
-      if (hour < 13) {
+      if (getCurrentHour() < 13) {
         alert("⏰ الحجز متاح من الساعة 1 ظهرًا فقط.");
         return;
       }
       localStorage.setItem('selectedService', service);
-      localStorage.setItem('serviceLimit', limit);
       window.location.href = 'booking.html';
     }
 
-    // تحقق فوري عند تحميل الصفحة
     updateAvailability();
-
-    // تحقق كل 30 ثانية (لمن فتح الصفحة مبكرًا وانتظر)
-    setInterval(updateAvailability, 30000);
+    setInterval(updateAvailability, 10000);
   </script>
 </body>
 </html>
